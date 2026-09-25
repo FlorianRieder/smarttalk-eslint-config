@@ -1,4 +1,6 @@
 // Fuer die Vite/React-Oberflaechen: Basis plus Hooks- und Fast-Refresh-Regeln.
+// First import on purpose, see typescript-resolve.js.
+import "./typescript-resolve.js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";

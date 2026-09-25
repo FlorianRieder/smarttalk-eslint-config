@@ -1,0 +1,64 @@
+name: Pruefen
+
+# Installiert das Paket so, wie ein Repo es einbindet (gepacktes Tarball,
+# frisches Projekt), und lintet test/fixture mit base- und react-Config gegen
+# erwartete Befunde. Die Matrix deckt ab, was in den Repos tatsaechlich liegt
+# (Stand 25.09.2026): TypeScript 5.9 (campus), 6.0 (semco-mcp, zentralstart)
+# und 7.0 (die meisten), jeweils mit npm und pnpm — der Paketmanager zaehlt,
+# weil npm die Hilfspakete von typescript-eslint neben das TypeScript des
+# Projekts hebt (siehe typescript-resolve.js).
+#
+# Der woechentliche Lauf faengt Brueche durch neue Versionen von TypeScript,
+# typescript-eslint oder ESLint ab: das Paket hat bewusst kein Lockfile, die
+# Repos loesen die Bereiche selbst auf.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fixture:
+    name: TS ${{ matrix.typescript }} / ESLint ${{ matrix.eslint }} / ${{ matrix.pm }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        typescript: ["5.9", "6.0", "7.0"]
+        pm: [npm, pnpm]
+        eslint: ["9"]
+        include:
+          - { typescript: "7.0", pm: npm, eslint: "10" }
+          - { typescript: "7.0", pm: pnpm, eslint: "10" }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        if: matrix.pm == 'pnpm'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - name: Fixture installieren und linten
+        run: node test/run.mjs
+        env:
+          PM: ${{ matrix.pm }}
+          TS_VERSION: ${{ matrix.typescript }}
+          ESLINT_VERSION: ${{ matrix.eslint }}
+
+  # Ein fester Check-Name fuer Branch-Schutz, unabhaengig von der Matrix.
+  ergebnis:
+    if: always()
+    needs: fixture
+    runs-on: ubuntu-latest
+    steps:
+      - name: Matrix-Ergebnis
+        run: |
+          if [ "${{ needs.fixture.result }}" != "success" ]; then
+            echo "Mindestens eine Kombination ist rot: ${{ needs.fixture.result }}"
+            exit 1
+          fi

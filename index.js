@@ -3,6 +3,9 @@
 // dazu die wenigen Anpassungen, die in den Repos bereits gelebte Praxis sind.
 // Stufe 1 ist "warnend im CI" (continue-on-error); erst wenn ein Repo sauber
 // ist, wird der Lint dort blockierend.
+// Must stay the first import: it has to be registered before typescript-eslint
+// loads (see typescript-resolve.js).
+import "./typescript-resolve.js";
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
